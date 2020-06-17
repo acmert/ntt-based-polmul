@@ -496,16 +496,24 @@ class Poly:
     # q: coefficient modulus
     # C: output polynomial
     def PolWiseMult(self,A,B,wk,deg,q):
-        C = [0] * (2 * deg)
-        D = [0] * deg
+        C = [0] * ((2 * deg)-1)
+        # D = [0] * ((2 * deg)-1)
 
-        for indexA, elemA in enumerate(A):
-            for indexB, elemB in enumerate(B):
-                C[indexA + indexB] = (C[indexA + indexB] + elemA * elemB) % q
+        if deg == 1:
+            # if final degree is 1
+            D = [(x*y)%q for x,y in zip(A,B)]
+            return D[0:deg]
+        else:
+            # if final degree is larger than 1
+            for indexA, elemA in enumerate(A):
+                for indexB, elemB in enumerate(B):
+                    C[indexA + indexB] = (C[indexA + indexB] + elemA * elemB) % q
 
-        for i in range(len(A)):
-            D[i] = (C[i] + C[i + len(A)]*wk) % q
-        return D
+            D = [_ for _ in C]
+            for i in range(len(A)-1):
+                D[i] = (C[i] + C[i + len(A)]*wk) % q
+
+        return D[0:deg]
 
     # -------------------------------------------------------------------------- Iterative
 

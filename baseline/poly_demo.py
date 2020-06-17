@@ -15,8 +15,8 @@ from poly import *
 
 # Parameters
 mod     = 2 # if 1 --> q = 1 (mod n), if 2 --> q = 1 (mod 2n)
-n       = 8
-q_bit   = 10
+n       = 256
+q_bit   = 13
 
 q       = 0
 w       = 0
@@ -61,7 +61,7 @@ print("")
 
 # Parameters (NTRU)
 m       = 3*n
-mq_bit  = 10
+mq_bit  = 14
 
 mq      = 0
 mw      = 0
