@@ -775,7 +775,7 @@ if DEBUG_TXT == 1:
     NTRU3_BR_TXT.write(NTRU3F_BR)
     NTRU3_BR_TXT.write("---------------------------------------------------------------------- Degree-2 polynomial-wise multiplication\n")
     NTRU3_BR_TXT.write("---------------------------------------------------------------------- Inverse NTT\n")
-    NTRU3_BR_TXT.write(NTRU3I_TW)
+    NTRU3_BR_TXT.write(NTRU3I_BR)
     NTRU3_BR_TXT.write("---------------------------------------------------------------------- Final Reconstruction\n")
     NTRU3_BR_TXT.close()
 
