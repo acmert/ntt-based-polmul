@@ -81,6 +81,13 @@ elif DEBUG_TEST_NWC1:
     DIN1_TXT = open("NWC1_DIN1.txt","w")
     # Input polynomials
     # --- Stored in order: 0, 1, 2, ..., n-1
+    DIN0_MFNTT_TXT = open("NWC1_DIN0_MFNTT.txt","w")
+    DIN1_MFNTT_TXT = open("NWC1_DIN1_MFNTT.txt","w")
+    # Output polynomials (after merged FNTT)
+    # --- Stored in bit-reversed order
+    DOUT_MINTT_TXT = open("NWC1_DOUT_MINTT.txt","w")
+    # Input polynomial (after coefficient-wise multiplication)
+    # --- Stored in order: 0, 1, 2, ..., n-1
     DOUT_TXT = open("NWC1_DOUT.txt","w")
     # Output polynomial
     # --- Stored in order: 0, 1, 2, ..., n-1
@@ -749,6 +756,11 @@ def CRTBasedModPolMul_Unified(A,B,w,w_inv,q,ring,findeg,ntrupowersf=[],ntrupower
     if DEBUG_DISP_NTRU3 and (ring == 1) and (findeg == 3):  print("---- NTT(B)")
     B_ntt,BBR,BTW = CRT_Iterative_Unified_NR(B_r,w,q,ring,findeg,ntrupowersf)
 
+    if DEBUG_TEST_NWC1:
+        for an,bn in zip(A_ntt,B_ntt):
+            DIN0_MFNTT_TXT.write(hex(an).replace("L","")[2:]+"\n")
+            DIN1_MFNTT_TXT.write(hex(bn).replace("L","")[2:]+"\n")
+
     # --------------------------------------------- Degree-findeg modular polynomial multiplications
     C_ntt = [0 for _ in range(len(A))]
     if DEBUG_DISP_NWC1  and (ring == 0) and (findeg == 1):  print("---- Coefficient-wise multiplication:")
@@ -772,6 +784,10 @@ def CRTBasedModPolMul_Unified(A,B,w,w_inv,q,ring,findeg,ntrupowersf=[],ntrupower
         C_ntt[findeg*i:findeg*i+findeg] = PolWiseMult(A_ntt[findeg*i:findeg*i+findeg],B_ntt[findeg*i:findeg*i+findeg],wk,findeg,q)
 
     # --------------------------------------------- INTT
+    if DEBUG_TEST_NWC1:
+        for cn in C_ntt:
+            DOUT_MINTT_TXT.write(hex(cn).replace("L","")[2:]+"\n")
+
     if DEBUG_DISP_NWC1  and (ring == 0) and (findeg == 1): print("---- INTT(C)")
     if DEBUG_DISP_NWC2  and (ring == 0) and (findeg == 2): print("---- INTT(C)")
     if DEBUG_DISP_NTRU3 and (ring == 1) and (findeg == 3): print("---- INTT(C)")
@@ -818,18 +834,18 @@ ntru =  [1]+[0]*(int(m/2)-1)+[-1]+[0]*(int(m/2)-1)+[1]
 
 # NTT
 if DEBUG_DISP_FNTT: print("\n-------- Addressing for NTT --------")
-N0,N0BR,N0TW = Radix2_DIT_Iterative_NTT_NR(A,w,q)
+if DEBUG_FNTT     : N0,N0BR,N0TW = Radix2_DIT_Iterative_NTT_NR(A,w,q)
 if DEBUG_DISP_INTT: print("\n-------- Addressing for INTT --------")
-N1,N1BR,N1TW = Radix2_DIF_Iterative_INTT_RN(N0,w_inv,q)
+if DEBUG_INTT     : N1,N1BR,N1TW = Radix2_DIF_Iterative_INTT_RN(N0,w_inv,q)
 
 # POLMUL
 if DEBUG_DISP_NWC1: print("\n-------- Addressing for NWC - findeg=1 --------")
-R0,R0BRF,R0TWF,R0BRI,R0TWI = CRTBasedModPolMul_Unified(A,B,psi,psi_inv,q,ring=0,findeg=1) # NWC - findeg=1
+if DEBUG_NWC1     : R0,R0BRF,R0TWF,R0BRI,R0TWI = CRTBasedModPolMul_Unified(A,B,psi,psi_inv,q,ring=0,findeg=1) # NWC - findeg=1
 if DEBUG_DISP_NWC2: print("\n-------- Addressing for NWC - findeg=2 --------")
-R1,R1BRF,R1TWF,R1BRI,R1TWI = CRTBasedModPolMul_Unified(A,B,w,w_inv,q,ring=0,findeg=2) # NWC - findeg=2
+if DEBUG_NWC2     : R1,R1BRF,R1TWF,R1BRI,R1TWI = CRTBasedModPolMul_Unified(A,B,w,w_inv,q,ring=0,findeg=2) # NWC - findeg=2
 if DEBUG_DISP_NTRU3: print("\n-------- Addressing for NTRU - findeg=3 --------")
 ring, findeg = 1,3
-R2,R2BRF,R2TWF,R2BRI,R2TWI = CRTBasedModPolMul_Unified(A_ntru,B_ntru,mw,mw_inv,mq,ring,findeg,ntrupowersf,ntrupowersb,ntrupowersi) # NTRU - findeg=3
+if DEBUG_NTRU3    : R2,R2BRF,R2TWF,R2BRI,R2TWI = CRTBasedModPolMul_Unified(A_ntru,B_ntru,mw,mw_inv,mq,ring,findeg,ntrupowersf,ntrupowersb,ntrupowersi) # NTRU - findeg=3
 
 # Print memory structure
 def PrintBRAM(BRAM,ring=0,findeg=1):
@@ -888,30 +904,15 @@ def PrintBRTW(BRTW,ring=0,findeg=1):
 
     return TS
 
-FNTT_BR   = PrintBRAM(N0BR)
-INTT_BR   = PrintBRAM(N1BR)
-NWC1F_BR  = PrintBRAM(R0BRF)
-NWC1I_BR  = PrintBRAM(R0BRI)
-NWC2F_BR  = PrintBRAM(R1BRF,0,2)
-NWC2I_BR  = PrintBRAM(R1BRI,0,2)
-NTRU3F_BR = PrintBRAM(R2BRF,1,3)
-NTRU3I_BR = PrintBRAM(R2BRI,1,3)
-
-FNTT_TW   = PrintBRTW(N0TW)
-INTT_TW   = PrintBRTW(N1TW)
-NWC1F_TW  = PrintBRTW(R0TWF)
-NWC1I_TW  = PrintBRTW(R0TWI)
-NWC2F_TW  = PrintBRTW(R1TWF,0,2)
-NWC2I_TW  = PrintBRTW(R1TWI,0,2)
-NTRU3F_TW = PrintBRTW(R2TWF,1,3)
-NTRU3I_TW = PrintBRTW(R2TWI,1,3)
-
 # Write to txt
 if DEBUG_MEMP_FNTT or DEBUG_MEMP_INTT or DEBUG_MEMP_NWC1 or DEBUG_MEMP_NWC2 or DEBUG_MEMP_NTRU3:
     print("")
     print("-------- Generated:")
 
 if DEBUG_MEMP_FNTT:
+    FNTT_BR   = PrintBRAM(N0BR)
+    FNTT_TW   = PrintBRTW(N0TW)
+
     # Data
     FNTT_BR_TXT = open("FNTT_mem_N"+str(n)+"_PE"+str(PE_NUMBER)+".txt","w")
     FNTT_BR_TXT.write(FNTT_BR)
@@ -925,6 +926,9 @@ if DEBUG_MEMP_FNTT:
     print("* FNTT_tw_N"+str(n)+"_PE"+str(PE_NUMBER)+".txt")
 
 if DEBUG_MEMP_INTT:
+    INTT_BR   = PrintBRAM(N1BR)
+    INTT_TW   = PrintBRTW(N1TW)
+
     # Date
     INTT_BR_TXT = open("INTT_mem_N"+str(n)+"_PE"+str(PE_NUMBER)+".txt","w")
     INTT_BR_TXT.write(INTT_BR)
@@ -938,6 +942,11 @@ if DEBUG_MEMP_INTT:
     print("* INTT_tw_N"+str(n)+"_PE"+str(PE_NUMBER)+".txt")
 
 if DEBUG_MEMP_NWC1:
+    NWC1F_BR  = PrintBRAM(R0BRF)
+    NWC1I_BR  = PrintBRAM(R0BRI)
+    NWC1F_TW  = PrintBRTW(R0TWF)
+    NWC1I_TW  = PrintBRTW(R0TWI)
+
     # Data
     NWC1_BR_TXT = open("NWC1_mem_N"+str(n)+"_PE"+str(PE_NUMBER)+".txt","w")
     NWC1_BR_TXT.write("---------------------------------------------------------------------- Forward NTT (x2)\n")
@@ -959,6 +968,11 @@ if DEBUG_MEMP_NWC1:
     print("* NWC1_tw_N"+str(n)+"_PE"+str(PE_NUMBER)+".txt")
 
 if DEBUG_MEMP_NWC2:
+    NWC2F_BR  = PrintBRAM(R1BRF,0,2)
+    NWC2I_BR  = PrintBRAM(R1BRI,0,2)
+    NWC2F_TW  = PrintBRTW(R1TWF,0,2)
+    NWC2I_TW  = PrintBRTW(R1TWI,0,2)
+
     # Data
     NWC2_BR_TXT = open("NWC2_mem_N"+str(n)+"_PE"+str(PE_NUMBER)+".txt","w")
     NWC2_BR_TXT.write("---------------------------------------------------------------------- Forward NTT (x2)\n")
@@ -980,6 +994,11 @@ if DEBUG_MEMP_NWC2:
     print("* NWC2_tw_N"+str(n)+"_PE"+str(PE_NUMBER)+".txt")
 
 if DEBUG_MEMP_NTRU3:
+    NTRU3F_BR = PrintBRAM(R2BRF,1,3)
+    NTRU3I_BR = PrintBRAM(R2BRI,1,3)
+    NTRU3F_TW = PrintBRTW(R2TWF,1,3)
+    NTRU3I_TW = PrintBRTW(R2TWI,1,3)
+
     # Data
     NTRU3_BR_TXT = open("NTRU3_mem_N"+str(m)+"_PE"+str(PE_NUMBER)+".txt","w")
     NTRU3_BR_TXT.write("---------------------------------------------------------------------- First Reduction\n")
