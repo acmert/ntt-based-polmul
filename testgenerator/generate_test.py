@@ -151,7 +151,7 @@ elif DEBUG_TEST_NTRU3:
 # ----------------------------------------------------------
 
 # Parallelism
-PE_NUMBER = 16
+PE_NUMBER = 64
 PE = 2*PE_NUMBER
 
 # ----------------------------------------------------------
@@ -165,8 +165,8 @@ PE = 2*PE_NUMBER
 
 # Parameters
 mod     = 2 # if 1 --> q = 1 (mod n), if 2 --> q = 1 (mod 2n)
-n       = 64
-q_bit   = 12
+n       = 256
+q_bit   = 13
 
 q       = 0
 w       = 0
@@ -219,7 +219,7 @@ print("")
 
 # Parameters (NTRU)
 m       = 3*n
-mq_bit  = 10
+mq_bit  = 13
 
 mq      = 0
 mw      = 0
@@ -1086,9 +1086,9 @@ if DEBUG_TEST_NWC1:
         for k in range(0,m,max(1,m>>j)):
             for i in range(PE//2):
                 if WLMONT:
-                    W_TXT.write(hex(pow(w,R0TWF[i][j][k],q)*fd1_R % q).replace("L","")[2:]+"\t  ")
+                    W_TXT.write(hex(pow(psi,R0TWF[i][j][k],q)*fd1_R % q).replace("L","")[2:]+"\t  ")
                 else:
-                    W_TXT.write(hex(pow(w,R0TWF[i][j][k],q)).replace("L","")[2:]+"\t  ")
+                    W_TXT.write(hex(pow(psi,R0TWF[i][j][k],q)).replace("L","")[2:]+"\t  ")
             W_TXT.write("\n")
     v = int(math.log(n, 2))
     m = n//PE
@@ -1096,9 +1096,9 @@ if DEBUG_TEST_NWC1:
         for k in range(0,m,max(1,m>>(v-j-1))):
             for i in range(PE//2):
                 if WLMONT:
-                    WINV_TXT.write(hex(pow(w,R0TWI[i][j][k],q)*fd1_R % q).replace("L","")[2:]+"\t  ")
+                    WINV_TXT.write(hex(pow(psi_inv,R0TWI[i][j][k],q)*fd1_R % q).replace("L","")[2:]+"\t  ")
                 else:
-                    WINV_TXT.write(hex(pow(w,R0TWI[i][j][k],q)).replace("L","")[2:]+"\t  ")
+                    WINV_TXT.write(hex(pow(psi_inv,R0TWI[i][j][k],q)).replace("L","")[2:]+"\t  ")
             WINV_TXT.write("\n")
     # R1TWF
 if DEBUG_TEST_NWC2:
