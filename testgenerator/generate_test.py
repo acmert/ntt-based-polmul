@@ -466,6 +466,9 @@ def CRT_Iterative_Unified_NR(A,w,q,ring,findeg,powers):
     N = len(A)
     B = [_ for _ in A]
 
+    if DEBUG_DISP_NWC1 and (ring == 0) and (findeg == 1):
+        DIN0_MFNTT_TXT_DEBUG = open("NWC1_DIN0_MFNTT_DEBUG.txt","w")
+
     # ---------------------------------
     if ring == 0:
         v = int(math.log(N//findeg, 2))
@@ -525,6 +528,9 @@ def CRT_Iterative_Unified_NR(A,w,q,ring,findeg,powers):
         lena = (N//4)
 
     while lena >= findeg:
+        if DEBUG_DISP_NWC1 and (ring == 0) and (findeg == 1):
+            DIN0_MFNTT_TXT_DEBUG.write("********************** STAGE START **********************\n")
+
         start = 0
         while start < N:
             if ring == 0:
@@ -541,12 +547,17 @@ def CRT_Iterative_Unified_NR(A,w,q,ring,findeg,powers):
             while(j < (start + lena)):
                 t = (W * B[j+lena]) % q
 
+                bt1,bt2 = B[j],B[j+lena]
+
                 B[j+lena] = (B[j] - t) % q
                 B[j     ] = (B[j] + t) % q
 
                 if DEBUG_DISP_NWC1  and (ring == 0) and (findeg == 1): print("W: "+str(W_pow).ljust(5)+" A0: "+str(j).ljust(5)+" A1: "+str(j+lena).ljust(5))
                 if DEBUG_DISP_NWC2  and (ring == 0) and (findeg == 2): print("W: "+str(W_pow).ljust(5)+" A0: "+str(j).ljust(5)+" A1: "+str(j+lena).ljust(5))
                 if DEBUG_DISP_NTRU3 and (ring == 1) and (findeg == 3): print("W: "+str(W_pow).ljust(5)+" A0: "+str(j).ljust(5)+" A1: "+str(j+lena).ljust(5))
+
+                if DEBUG_DISP_NWC1 and (ring == 0) and (findeg == 1):
+                    DIN0_MFNTT_TXT_DEBUG.write("("+str(bt1).ljust(12)+" "+str(bt2).ljust(12)+" "+str((W*fd1_R) % q).ljust(12)+") -> ("+str(B[j]).ljust(12)+" "+str(B[j+lena]).ljust(12)+")"+"\n")
 
                 # ---------------------------------
                 if ring == 0:
