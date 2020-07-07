@@ -462,11 +462,11 @@ def PolWiseMult(A,B,wk,deg,q):
 # W: twiddle factor
 # q: modulus
 # B: output polynomial (bit-reversed order)
-def CRT_Iterative_Unified_NR(A,w,q,ring,findeg,powers):
+def CRT_Iterative_Unified_NR(A,w,q,ring,findeg,powers,testnum=0):
     N = len(A)
     B = [_ for _ in A]
 
-    if DEBUG_DISP_NWC1 and (ring == 0) and (findeg == 1):
+    if DEBUG_DISP_NWC1 and (ring == 0) and (findeg == 1) and (testnum == 0):
         DIN0_MFNTT_TXT_DEBUG = open("NWC1_DIN0_MFNTT_DEBUG.txt","w")
 
     # ---------------------------------
@@ -528,7 +528,7 @@ def CRT_Iterative_Unified_NR(A,w,q,ring,findeg,powers):
         lena = (N//4)
 
     while lena >= findeg:
-        if DEBUG_DISP_NWC1 and (ring == 0) and (findeg == 1):
+        if DEBUG_DISP_NWC1 and (ring == 0) and (findeg == 1) and (testnum == 0):
             DIN0_MFNTT_TXT_DEBUG.write("********************** STAGE START **********************\n")
 
         start = 0
@@ -556,8 +556,8 @@ def CRT_Iterative_Unified_NR(A,w,q,ring,findeg,powers):
                 if DEBUG_DISP_NWC2  and (ring == 0) and (findeg == 2): print("W: "+str(W_pow).ljust(5)+" A0: "+str(j).ljust(5)+" A1: "+str(j+lena).ljust(5))
                 if DEBUG_DISP_NTRU3 and (ring == 1) and (findeg == 3): print("W: "+str(W_pow).ljust(5)+" A0: "+str(j).ljust(5)+" A1: "+str(j+lena).ljust(5))
 
-                if DEBUG_DISP_NWC1 and (ring == 0) and (findeg == 1):
-                    DIN0_MFNTT_TXT_DEBUG.write("("+str(bt1).ljust(12)+" "+str(bt2).ljust(12)+" "+str((W*fd1_R) % q).ljust(12)+") -> ("+str(B[j]).ljust(12)+" "+str(B[j+lena]).ljust(12)+")"+"\n")
+                if DEBUG_DISP_NWC1 and (ring == 0) and (findeg == 1) and (testnum == 0):
+                    DIN0_MFNTT_TXT_DEBUG.write("(A["+str(j).ljust(4)+"]: "+str((hex(bt1)[2:]).rstrip("L")).ljust(12)+" A["+str(j+lena).ljust(4)+"]: "+str((hex(bt2)[2:]).rstrip("L")).ljust(12)+" W["+str(W_pow).ljust(4)+"]: "+str((hex((W*fd1_R) % q)[2:]).rstrip("L")).ljust(12)+") -> ("+str((hex(B[j])[2:]).rstrip("L")).ljust(12)+" "+str((hex(B[j+lena])[2:]).rstrip("L")).ljust(12)+")"+"\n")
 
                 # ---------------------------------
                 if ring == 0:
@@ -761,11 +761,11 @@ def CRTBasedModPolMul_Unified(A,B,w,w_inv,q,ring,findeg,ntrupowersf=[],ntrupower
     if DEBUG_DISP_NWC1  and (ring == 0) and (findeg == 1):  print("---- NTT(A)")
     if DEBUG_DISP_NWC2  and (ring == 0) and (findeg == 2):  print("---- NTT(A)")
     if DEBUG_DISP_NTRU3 and (ring == 1) and (findeg == 3):  print("---- NTT(A)")
-    A_ntt,ABR,ATW = CRT_Iterative_Unified_NR(A_r,w,q,ring,findeg,ntrupowersf)
+    A_ntt,ABR,ATW = CRT_Iterative_Unified_NR(A_r,w,q,ring,findeg,ntrupowersf,testnum=0)
     if DEBUG_DISP_NWC1  and (ring == 0) and (findeg == 1):  print("---- NTT(B)")
     if DEBUG_DISP_NWC2  and (ring == 0) and (findeg == 2):  print("---- NTT(B)")
     if DEBUG_DISP_NTRU3 and (ring == 1) and (findeg == 3):  print("---- NTT(B)")
-    B_ntt,BBR,BTW = CRT_Iterative_Unified_NR(B_r,w,q,ring,findeg,ntrupowersf)
+    B_ntt,BBR,BTW = CRT_Iterative_Unified_NR(B_r,w,q,ring,findeg,ntrupowersf,testnum=1)
 
     if DEBUG_TEST_NWC1:
         for an,bn in zip(A_ntt,B_ntt):
