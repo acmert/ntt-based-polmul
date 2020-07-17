@@ -1123,7 +1123,10 @@ if DEBUG_TEST_NWC1:
     NWC1_PRM_TXT.write(hex(q          ).replace("L","")[2:]+"\n")
     NWC1_PRM_TXT.write(hex(q_bit      ).replace("L","")[2:]+"\n")
     NWC1_PRM_TXT.write(hex(PE_NUMBER  ).replace("L","")[2:]+"\n")
-    NWC1_PRM_TXT.write(hex(modinv(n,q)).replace("L","")[2:]+"\n")
+    if WLMONT:
+        NWC1_PRM_TXT.write(hex(modinv(n,q)*fd1_R % q).replace("L","")[2:]+"\n")
+    else:
+        NWC1_PRM_TXT.write(hex(modinv(n,q)).replace("L","")[2:]+"\n")
     # Input/Output
     for mi0,mi1,mo0 in zip(A,B,R0):
         NWC1_DIN0_TXT.write(hex(mi0).replace("L","")[2:]+"\n")
