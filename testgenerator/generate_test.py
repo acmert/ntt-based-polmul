@@ -9,8 +9,8 @@ from helper import *
 # make onle 1 of options below
 DEBUG_FNTT  = 0
 DEBUG_INTT  = 0
-DEBUG_NWC1  = 1
-DEBUG_NWC2  = 0
+DEBUG_NWC1  = 0
+DEBUG_NWC2  = 1
 DEBUG_NTRU3 = 0
 
 # Display memory patter on console
@@ -109,6 +109,12 @@ if DEBUG_TEST_NWC2:
     NWC2_DIN1_TXT = open("NWC2_DIN1.txt","w")
     # Input polynomials
     # --- Stored in order: 0, 1, 2, ..., n-1
+    NWC2_DIN0_MFNTT_TXT = open("NWC2_DIN0_MFNTT.txt","w")
+    NWC2_DIN1_MFNTT_TXT = open("NWC2_DIN1_MFNTT.txt","w")
+    # Output polynomials (after merged FNTT)
+    # --- Stored in bit-reversed order
+    NWC2_DOUT_MINTT_TXT = open("NWC2_DOUT_MINTT.txt","w")
+    # Input polynomial (after coefficient-wise multiplication)
     NWC2_DOUT_TXT = open("NWC2_DOUT.txt","w")
     # Output polynomial
     # --- Stored in order: 0, 1, 2, ..., n-1
@@ -135,8 +141,19 @@ if DEBUG_TEST_NTRU3:
     NTRU3_DIN1_TXT = open("NTRU3_DIN1.txt","w")
     # Input polynomials
     # --- Stored in order: 0, 1, 2, ..., n-1
+    NTRU3_DIN0_PREMFNTT_TXT = open("NTRU3_DIN0_PREMFNTT.txt","w")
+    NTRU3_DIN1_PREMFNTT_TXT = open("NTRU3_DIN1_PREMFNTT.txt","w")
+    # Polynomials (after pre-processing, before merged FNTT)
+    # --- Stored in bit-reversed order
+    NTRU3_DIN0_MFNTT_TXT = open("NTRU3_DIN0_MFNTT.txt","w")
+    NTRU3_DIN1_MFNTT_TXT = open("NTRU3_DIN1_MFNTT.txt","w")
+    # Output polynomials (after merged FNTT)
+    # --- Stored in bit-reversed order
     NTRU3_DOUT_TXT = open("NTRU3_DOUT.txt","w")
-    # Output polynomial
+    # Output polynomial (before post-processing and merged INTT)
+    # --- Stored in order: 0, 1, 2, ..., n-1
+    NTRU3_POSTDOUT_TXT = open("NTRU3_POSTDOUT.txt","w")
+    # Output polynomial (after post-processing and merged INTT)
     # --- Stored in order: 0, 1, 2, ..., n-1
     NTRU3_W_TXT    = open("NTRU3_W.txt","w")
     # Twiddle factors
@@ -208,13 +225,15 @@ fd2_L  = int(ceil(q_bit/fd2_ws)) # iteration (for WL Montgomery)
 fd2_R  = 2**(fd2_ws*fd2_L)
 
 # Print parameters
-print("Parameters (NWC)")
-print("n      : {}".format(n))
-print("q      : {}".format(q))
-print("w      : {}".format(w))
-print("w_inv  : {}".format(w_inv))
-print("psi    : {}".format(psi))
-print("psi_inv: {}".format(psi_inv))
+print("Parameters (NWC) (not multiplied with Montgomery constant R)")
+print("n          : {}".format(n))
+print("q          : {}".format(q))
+print("w          : {}".format(w))
+print("w_inv      : {}".format(w_inv))
+print("psi        : {}".format(psi))
+print("psi_inv    : {}".format(psi_inv))
+print("n_inv      : {}".format(modinv(n,q)))
+print("n_div2_inv : {}".format(modinv(n//2,q)))
 print("")
 
 # Parameters (NTRU)
@@ -286,10 +305,13 @@ for i in range(m//6):
 # print(ntrupowersi)
 
 print("Parameters (NTRU)")
-print("m      : {}".format(m))
-print("mq     : {}".format(mq))
-print("mw     : {}".format(mw))
-print("mw_inv : {}".format(mw_inv))
+print("m         : {}".format(m))
+print("mq        : {}".format(mq))
+print("mw        : {}".format(mw))
+print("mw_inv    : {}".format(mw_inv))
+print("mw (pre)  : {}".format(pow(mw,m//6,mq)))
+print("mw (post) : {}".format(modinv((2*pow(mw,(m//6),mq)-1)%mq,mq)))
+print("n_inv     : {}".format(modinv(n,q)))
 print("")
 
 print("Parameters (HW implementation)")
@@ -493,6 +515,16 @@ def CRT_Iterative_Unified_NR(A,w,q,ring,findeg,powers,testnum=0):
     if DEBUG_TEST_NWC1 and (ring == 0) and (findeg == 1) and (testnum == 1):
         NWC1_DIN1_MFNTT_TXT_DEBUG = open("NWC1_DIN1_MFNTT_DEBUG.txt","w")
 
+    if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2) and (testnum == 0):
+        NWC2_DIN0_MFNTT_TXT_DEBUG = open("NWC2_DIN0_MFNTT_DEBUG.txt","w")
+    if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2) and (testnum == 1):
+        NWC2_DIN1_MFNTT_TXT_DEBUG = open("NWC2_DIN1_MFNTT_DEBUG.txt","w")
+
+    if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3) and (testnum == 0):
+        NTRU3_DIN0_MFNTT_TXT_DEBUG = open("NTRU3_DIN0_MFNTT_DEBUG.txt","w")
+    if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3) and (testnum == 1):
+        NTRU3_DIN1_MFNTT_TXT_DEBUG = open("NTRU3_DIN1_MFNTT_DEBUG.txt","w")
+
     # ---------------------------------
     if ring == 0:
         v = int(math.log(N//findeg, 2))
@@ -557,6 +589,17 @@ def CRT_Iterative_Unified_NR(A,w,q,ring,findeg,powers,testnum=0):
         if DEBUG_TEST_NWC1 and (ring == 0) and (findeg == 1) and (testnum == 1):
             NWC1_DIN1_MFNTT_TXT_DEBUG.write("********************** STAGE START **********************\n")
 
+        if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2) and (testnum == 0):
+            NWC2_DIN0_MFNTT_TXT_DEBUG.write("********************** STAGE START **********************\n")
+        if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2) and (testnum == 1):
+            NWC2_DIN1_MFNTT_TXT_DEBUG.write("********************** STAGE START **********************\n")
+
+        if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3) and (testnum == 0):
+            NTRU3_DIN0_MFNTT_TXT_DEBUG.write("********************** STAGE START **********************\n")
+        if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3) and (testnum == 1):
+            NTRU3_DIN1_MFNTT_TXT_DEBUG.write("********************** STAGE START **********************\n")
+
+
         start = 0
         while start < N:
             if ring == 0:
@@ -586,6 +629,16 @@ def CRT_Iterative_Unified_NR(A,w,q,ring,findeg,powers,testnum=0):
                     NWC1_DIN0_MFNTT_TXT_DEBUG.write("(A["+str(j).ljust(4)+"]: "+str((hex(bt1)[2:]).rstrip("L")).ljust(12)+" A["+str(j+lena).ljust(4)+"]: "+str((hex(bt2)[2:]).rstrip("L")).ljust(12)+" W["+str(W_pow).ljust(4)+"]: "+str((hex((W*fd1_R) % q)[2:]).rstrip("L")).ljust(12)+") -> ("+str((hex(B[j])[2:]).rstrip("L")).ljust(12)+" "+str((hex(B[j+lena])[2:]).rstrip("L")).ljust(12)+")"+"\n")
                 if DEBUG_TEST_NWC1 and (ring == 0) and (findeg == 1) and (testnum == 1):
                     NWC1_DIN1_MFNTT_TXT_DEBUG.write("(A["+str(j).ljust(4)+"]: "+str((hex(bt1)[2:]).rstrip("L")).ljust(12)+" A["+str(j+lena).ljust(4)+"]: "+str((hex(bt2)[2:]).rstrip("L")).ljust(12)+" W["+str(W_pow).ljust(4)+"]: "+str((hex((W*fd1_R) % q)[2:]).rstrip("L")).ljust(12)+") -> ("+str((hex(B[j])[2:]).rstrip("L")).ljust(12)+" "+str((hex(B[j+lena])[2:]).rstrip("L")).ljust(12)+")"+"\n")
+
+                if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2) and (testnum == 0):
+                    NWC2_DIN0_MFNTT_TXT_DEBUG.write("(A["+str(j).ljust(4)+"]: "+str((hex(bt1)[2:]).rstrip("L")).ljust(12)+" A["+str(j+lena).ljust(4)+"]: "+str((hex(bt2)[2:]).rstrip("L")).ljust(12)+" W["+str(W_pow).ljust(4)+"]: "+str((hex((W*fd2_R) % q)[2:]).rstrip("L")).ljust(12)+") -> ("+str((hex(B[j])[2:]).rstrip("L")).ljust(12)+" "+str((hex(B[j+lena])[2:]).rstrip("L")).ljust(12)+")"+"\n")
+                if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2) and (testnum == 1):
+                    NWC2_DIN1_MFNTT_TXT_DEBUG.write("(A["+str(j).ljust(4)+"]: "+str((hex(bt1)[2:]).rstrip("L")).ljust(12)+" A["+str(j+lena).ljust(4)+"]: "+str((hex(bt2)[2:]).rstrip("L")).ljust(12)+" W["+str(W_pow).ljust(4)+"]: "+str((hex((W*fd2_R) % q)[2:]).rstrip("L")).ljust(12)+") -> ("+str((hex(B[j])[2:]).rstrip("L")).ljust(12)+" "+str((hex(B[j+lena])[2:]).rstrip("L")).ljust(12)+")"+"\n")
+
+                if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3) and (testnum == 0):
+                    NTRU3_DIN0_MFNTT_TXT_DEBUG.write("(A["+str(j).ljust(4)+"]: "+str((hex(bt1)[2:]).rstrip("L")).ljust(12)+" A["+str(j+lena).ljust(4)+"]: "+str((hex(bt2)[2:]).rstrip("L")).ljust(12)+" W["+str(W_pow).ljust(4)+"]: "+str((hex((W*fd3_R) % q)[2:]).rstrip("L")).ljust(12)+") -> ("+str((hex(B[j])[2:]).rstrip("L")).ljust(12)+" "+str((hex(B[j+lena])[2:]).rstrip("L")).ljust(12)+")"+"\n")
+                if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3) and (testnum == 1):
+                    NTRU3_DIN1_MFNTT_TXT_DEBUG.write("(A["+str(j).ljust(4)+"]: "+str((hex(bt1)[2:]).rstrip("L")).ljust(12)+" A["+str(j+lena).ljust(4)+"]: "+str((hex(bt2)[2:]).rstrip("L")).ljust(12)+" W["+str(W_pow).ljust(4)+"]: "+str((hex((W*fd3_R) % q)[2:]).rstrip("L")).ljust(12)+") -> ("+str((hex(B[j])[2:]).rstrip("L")).ljust(12)+" "+str((hex(B[j+lena])[2:]).rstrip("L")).ljust(12)+")"+"\n")
 
                 # ---------------------------------
                 if ring == 0:
@@ -624,6 +677,12 @@ def ICRT_Iterative_Unified_RN(A,w,q,ring,findeg,powers):
 
     if DEBUG_TEST_NWC1 and (ring == 0) and (findeg == 1):
         NWC1_DOUT_MINTT_TXT_DEBUG = open("NWC1_DOUT_MINTT_DEBUG.txt","w")
+
+    if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2):
+        NWC2_DOUT_MINTT_TXT_DEBUG = open("NWC2_DOUT_MINTT_DEBUG.txt","w")
+
+    if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3):
+        NTRU3_DOUT_MINTT_TXT_DEBUG = open("NTRU3_DOUT_MINTT_DEBUG.txt","w")
 
     # ---------------------------------
     if ring == 0:
@@ -694,6 +753,12 @@ def ICRT_Iterative_Unified_RN(A,w,q,ring,findeg,powers):
     while lena <= lena_limit:
         if DEBUG_TEST_NWC1 and (ring == 0) and (findeg == 1):
             NWC1_DOUT_MINTT_TXT_DEBUG.write("********************** STAGE START **********************\n")
+        
+        if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2):
+            NWC2_DOUT_MINTT_TXT_DEBUG.write("********************** STAGE START **********************\n")
+
+        if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3):
+            NTRU3_DOUT_MINTT_TXT_DEBUG.write("********************** STAGE START **********************\n")
 
         start = 0
         while start < N:
@@ -726,6 +791,12 @@ def ICRT_Iterative_Unified_RN(A,w,q,ring,findeg,powers):
 
                 if DEBUG_TEST_NWC1 and (ring == 0) and (findeg == 1):
                     NWC1_DOUT_MINTT_TXT_DEBUG.write("(A["+str(j).ljust(4)+"]: "+str((hex(bt1)[2:]).rstrip("L")).ljust(12)+" A["+str(j+lena).ljust(4)+"]: "+str((hex(bt2)[2:]).rstrip("L")).ljust(12)+" W["+str(W_pow).ljust(4)+"]: "+str((hex((TW*fd1_R) % q)[2:]).rstrip("L")).ljust(12)+") -> ("+str((hex(B[j])[2:]).rstrip("L")).ljust(12)+" "+str((hex(B[j+lena])[2:]).rstrip("L")).ljust(12)+")"+"\n")
+
+                if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2):
+                    NWC2_DOUT_MINTT_TXT_DEBUG.write("(A["+str(j).ljust(4)+"]: "+str((hex(bt1)[2:]).rstrip("L")).ljust(12)+" A["+str(j+lena).ljust(4)+"]: "+str((hex(bt2)[2:]).rstrip("L")).ljust(12)+" W["+str(W_pow).ljust(4)+"]: "+str((hex((TW*fd2_R) % q)[2:]).rstrip("L")).ljust(12)+") -> ("+str((hex(B[j])[2:]).rstrip("L")).ljust(12)+" "+str((hex(B[j+lena])[2:]).rstrip("L")).ljust(12)+")"+"\n")
+
+                if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3):
+                    NTRU3_DOUT_MINTT_TXT_DEBUG.write("(A["+str(j).ljust(4)+"]: "+str((hex(bt1)[2:]).rstrip("L")).ljust(12)+" A["+str(j+lena).ljust(4)+"]: "+str((hex(bt2)[2:]).rstrip("L")).ljust(12)+" W["+str(W_pow).ljust(4)+"]: "+str((hex((TW*fd3_R) % q)[2:]).rstrip("L")).ljust(12)+") -> ("+str((hex(B[j])[2:]).rstrip("L")).ljust(12)+" "+str((hex(B[j+lena])[2:]).rstrip("L")).ljust(12)+")"+"\n")
 
                 # ---------------------------------
                 if ring == 0:
@@ -806,16 +877,29 @@ def CRTBasedModPolMul_Unified(A,B,w,w_inv,q,ring,findeg,ntrupowersf=[],ntrupower
     if DEBUG_DISP_NTRU3 and (ring == 1) and (findeg == 3):  print("---- NTT(B)")
     B_ntt,BBR,BTW = CRT_Iterative_Unified_NR(B_r,w,q,ring,findeg,ntrupowersf,testnum=1)
 
-    if DEBUG_TEST_NWC1:
+    if DEBUG_TEST_NWC1 and (ring == 0) and (findeg == 1):
         for an,bn in zip(A_ntt,B_ntt):
             NWC1_DIN0_MFNTT_TXT.write(hex(an).replace("L","")[2:]+"\n")
             NWC1_DIN1_MFNTT_TXT.write(hex(bn).replace("L","")[2:]+"\n")
+    
+    if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2):
+        for an,bn in zip(A_ntt,B_ntt):
+            NWC2_DIN0_MFNTT_TXT.write(hex(an).replace("L","")[2:]+"\n")
+            NWC2_DIN1_MFNTT_TXT.write(hex(bn).replace("L","")[2:]+"\n")
+
+    if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3):
+        for an,bn in zip(A_ntt,B_ntt):
+            NTRU3_DIN0_MFNTT_TXT.write(hex(an).replace("L","")[2:]+"\n")
+            NTRU3_DIN1_MFNTT_TXT.write(hex(bn).replace("L","")[2:]+"\n")
 
     # --------------------------------------------- Degree-findeg modular polynomial multiplications
     C_ntt = [0 for _ in range(len(A))]
     if DEBUG_DISP_NWC1  and (ring == 0) and (findeg == 1):  print("---- Coefficient-wise multiplication:")
     if DEBUG_DISP_NWC2  and (ring == 0) and (findeg == 2):  print("---- Coefficient-wise multiplication:")
     if DEBUG_DISP_NTRU3 and (ring == 1) and (findeg == 3):  print("---- Coefficient-wise multiplication:")
+
+    if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2):
+        NWC2_DOUT_COEFMUL_TXT_DEBUG = open("NWC2_DOUT_COEFMUL_DEBUG.txt","w")
 
     for i in range(len(A)//findeg):
         if ring == 0:
@@ -833,10 +917,27 @@ def CRTBasedModPolMul_Unified(A,B,w,w_inv,q,ring,findeg,ntrupowersf=[],ntrupower
         wk    = pow(w,w_pow,q)
         C_ntt[findeg*i:findeg*i+findeg] = PolWiseMult(A_ntt[findeg*i:findeg*i+findeg],B_ntt[findeg*i:findeg*i+findeg],wk,findeg,q)
 
+        if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2):
+            NWC2_WP_TXT.write(hex(wk*fd2_R % q).replace("L","")[2:]+"\n")
+
+        if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2):
+            NWC2_DOUT_COEFMUL_TXT_DEBUG.write("(A["+str(findeg*i)+":"+str(findeg*i+findeg-1)+"]="+str(A_ntt[findeg*i:findeg*i+findeg])+", ".ljust(5)+ \
+                                               "B["+str(findeg*i)+":"+str(findeg*i+findeg-1)+"]="+str(B_ntt[findeg*i:findeg*i+findeg])+", ".ljust(5)+ \
+                                               "W:"+str(wk*fd2_R % q)+") --> ".ljust(5) + \
+                                               "C["+str(findeg*i)+":"+str(findeg*i+findeg-1)+"]="+str(C_ntt[findeg*i:findeg*i+findeg])+"\n")
+
     # --------------------------------------------- INTT
-    if DEBUG_TEST_NWC1:
+    if DEBUG_TEST_NWC1 and (ring == 0) and (findeg == 1):
         for cn in C_ntt:
             NWC1_DOUT_MINTT_TXT.write(hex(cn).replace("L","")[2:]+"\n")
+    
+    if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2):
+        for cn in C_ntt:
+            NWC2_DOUT_MINTT_TXT.write(hex(cn).replace("L","")[2:]+"\n")
+
+    if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3):
+        for cn in C_ntt:
+            NTRU3_DOUT_MINTT_TXT.write(hex(cn).replace("L","")[2:]+"\n")
 
     if DEBUG_DISP_NWC1  and (ring == 0) and (findeg == 1): print("---- INTT(C)")
     if DEBUG_DISP_NWC2  and (ring == 0) and (findeg == 2): print("---- INTT(C)")
@@ -1101,7 +1202,10 @@ if DEBUG_TEST_INTT:
     INTT_PRM_TXT.write(hex(q          ).replace("L","")[2:]+"\n")
     INTT_PRM_TXT.write(hex(q_bit      ).replace("L","")[2:]+"\n")
     INTT_PRM_TXT.write(hex(PE_NUMBER  ).replace("L","")[2:]+"\n")
-    INTT_PRM_TXT.write(hex(modinv(n,q)).replace("L","")[2:]+"\n")
+    if WLMONT:
+        INTT_PRM_TXT.write(hex(modinv(n,q)*fd1_R % q).replace("L","")[2:]+"\n")
+    else:
+        INTT_PRM_TXT.write(hex(modinv(n,q)).replace("L","")[2:]+"\n")
     # Input/Output
     for fnn,inn in zip(N0,A):
         INTT_DIN_TXT.write(hex(fnn).replace("L","")[2:]+"\n")
@@ -1155,18 +1259,21 @@ if DEBUG_TEST_NWC1:
             NWC1_WINV_TXT.write("\n")
     # R1TWF
 if DEBUG_TEST_NWC2:
-    """
     # Parameters
     NWC2_PRM_TXT.write(hex(n          ).replace("L","")[2:]+"\n")
     NWC2_PRM_TXT.write(hex(q          ).replace("L","")[2:]+"\n")
     NWC2_PRM_TXT.write(hex(q_bit      ).replace("L","")[2:]+"\n")
     NWC2_PRM_TXT.write(hex(PE_NUMBER  ).replace("L","")[2:]+"\n")
-    NWC2_PRM_TXT.write(hex(modinv(n,q)).replace("L","")[2:]+"\n")
+    if WLMONT:
+        NWC2_PRM_TXT.write(hex(modinv(n//2,q)*fd2_R % q).replace("L","")[2:]+"\n")
+    else:
+        NWC2_PRM_TXT.write(hex(modinv(n//2,q)).replace("L","")[2:]+"\n")
     # Input/Output
     for mi0,mi1,mo0 in zip(A,B,R1):
         NWC2_DIN0_TXT.write(hex(mi0).replace("L","")[2:]+"\n")
         NWC2_DIN1_TXT.write(hex(mi1).replace("L","")[2:]+"\n")
         NWC2_DOUT_TXT.write(hex(mo0).replace("L","")[2:]+"\n")
+        print("asd")
     # Twiddle factor
     v = int(math.log(n//2, 2))
     m = n//PE
@@ -1188,8 +1295,9 @@ if DEBUG_TEST_NWC2:
                 else:
                     NWC2_WINV_TXT.write(hex(pow(w_inv,R1TWI[i][j][k],q)).replace("L","")[2:]+"\t  ")
             NWC2_WINV_TXT.write("\n")
-    """
-    pass
+    NWC2_DIN0_TXT.close()
+    NWC2_DIN1_TXT.close()
+    NWC2_DOUT_TXT.close()
 if DEBUG_TEST_NTRU3:
     pass
 
