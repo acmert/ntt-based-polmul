@@ -10,8 +10,8 @@ from helper import *
 DEBUG_FNTT  = 0
 DEBUG_INTT  = 0
 DEBUG_NWC1  = 0
-DEBUG_NWC2  = 1
-DEBUG_NTRU3 = 0
+DEBUG_NWC2  = 0
+DEBUG_NTRU3 = 1
 
 # Display memory patter on console
 DEBUG_DISP_FNTT  = DEBUG_FNTT  # Forward NTT
@@ -149,11 +149,14 @@ if DEBUG_TEST_NTRU3:
     NTRU3_DIN1_MFNTT_TXT = open("NTRU3_DIN1_MFNTT.txt","w")
     # Output polynomials (after merged FNTT)
     # --- Stored in bit-reversed order
-    NTRU3_DOUT_TXT = open("NTRU3_DOUT.txt","w")
+    NTRU3_DOUT_MINTT_TXT = open("NTRU3_DOUT_MINNT.txt","w")
     # Output polynomial (before post-processing and merged INTT)
     # --- Stored in order: 0, 1, 2, ..., n-1
     NTRU3_POSTDOUT_TXT = open("NTRU3_POSTDOUT.txt","w")
     # Output polynomial (after post-processing and merged INTT)
+    # --- Stored in order: 0, 1, 2, ..., n-1
+    NTRU3_DOUT_TXT = open("NTRU3_DOUT.txt","w")
+    # Output polynomial
     # --- Stored in order: 0, 1, 2, ..., n-1
     NTRU3_W_TXT    = open("NTRU3_W.txt","w")
     # Twiddle factors
@@ -753,7 +756,7 @@ def ICRT_Iterative_Unified_RN(A,w,q,ring,findeg,powers):
     while lena <= lena_limit:
         if DEBUG_TEST_NWC1 and (ring == 0) and (findeg == 1):
             NWC1_DOUT_MINTT_TXT_DEBUG.write("********************** STAGE START **********************\n")
-        
+
         if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2):
             NWC2_DOUT_MINTT_TXT_DEBUG.write("********************** STAGE START **********************\n")
 
@@ -856,8 +859,24 @@ def CRTBasedModPolMul_Unified(A,B,w,w_inv,q,ring,findeg,ntrupowersf=[],ntrupower
 
         if DEBUG_DISP_NTRU3 and (ring == 1) and (findeg == 3): print("---- Pre-processing:")
 
+        if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3):
+            NTRU3_DIN0_PREMFNTT_TXT_DEBUG = open("NTRU3_DIN0_PREMFNTT_DEBUG.txt","w")
+            NTRU3_DIN1_PREMFNTT_TXT_DEBUG = open("NTRU3_DIN1_PREMFNTT_DEBUG.txt","w")
+
         wk = pow(w,len(A)//6,q)
         for i in range(len(A)//2):
+            if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3):
+                NTRU3_DIN0_PREMFNTT_TXT_DEBUG.write("(A["+str(i+len(A)//2)+"]="+str(A[i+len(A)//2])+", ".ljust(5)+ \
+                                                     "A["+str(i)+"]="+str(A[i])+", ".ljust(5)+ \
+                                                     "W:"+str(wk*fd3_R % q)+") --> ".ljust(5) + \
+                                                     "A["+str(i+len(A)//2)+"]="+str((A[i]+A[i+len(A)//2]-((wk*A[i+len(A)//2])%q))%q)+", ".ljust(5)+ \
+                                                     "A["+str(i)+"]="+str((A[i]+((wk*A[i+len(A)//2])%q))%q)+"\n")
+                NTRU3_DIN1_PREMFNTT_TXT_DEBUG.write("(B["+str(i+len(B)//2)+"]="+str(B[i+len(B)//2])+", ".ljust(5)+ \
+                                                     "B["+str(i)+"]="+str(B[i])+", ".ljust(5)+ \
+                                                     "W:"+str(wk*fd3_R % q)+") --> ".ljust(5) + \
+                                                     "B["+str(i+len(B)//2)+"]="+str((B[i]+B[i+len(B)//2]-((wk*B[i+len(B)//2])%q))%q)+", ".ljust(5)+ \
+                                                     "B["+str(i)+"]="+str((B[i]+((wk*B[i+len(B)//2])%q))%q)+"\n")
+
             t1 = (wk*A[i+len(A)//2]) % q
             t2 = (wk*B[i+len(B)//2]) % q
             A_r[i+len(A)//2] = (A[i]+A[i+len(A)//2]-t1)%q
@@ -866,6 +885,11 @@ def CRTBasedModPolMul_Unified(A,B,w,w_inv,q,ring,findeg,ntrupowersf=[],ntrupower
             B_r[i]           = (B[i]               +t2)%q
 
             if DEBUG_DISP_NTRU3 and (ring == 1) and (findeg == 3):  print("W: "+str(len(A)//6).ljust(5)+" A0: "+str(i).ljust(5)+" A1: "+str(i+len(A)//2).ljust(5))
+
+        if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3):
+            for an,bn in zip(A_r,B_r):
+                NTRU3_DIN0_PREMFNTT_TXT.write(hex(an).replace("L","")[2:]+"\n")
+                NTRU3_DIN1_PREMFNTT_TXT.write(hex(bn).replace("L","")[2:]+"\n")
 
     # --------------------------------------------- NTT
     if DEBUG_DISP_NWC1  and (ring == 0) and (findeg == 1):  print("---- NTT(A)")
@@ -881,7 +905,7 @@ def CRTBasedModPolMul_Unified(A,B,w,w_inv,q,ring,findeg,ntrupowersf=[],ntrupower
         for an,bn in zip(A_ntt,B_ntt):
             NWC1_DIN0_MFNTT_TXT.write(hex(an).replace("L","")[2:]+"\n")
             NWC1_DIN1_MFNTT_TXT.write(hex(bn).replace("L","")[2:]+"\n")
-    
+
     if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2):
         for an,bn in zip(A_ntt,B_ntt):
             NWC2_DIN0_MFNTT_TXT.write(hex(an).replace("L","")[2:]+"\n")
@@ -900,6 +924,9 @@ def CRTBasedModPolMul_Unified(A,B,w,w_inv,q,ring,findeg,ntrupowersf=[],ntrupower
 
     if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2):
         NWC2_DOUT_COEFMUL_TXT_DEBUG = open("NWC2_DOUT_COEFMUL_DEBUG.txt","w")
+
+    if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3):
+        NTRU3_DOUT_COEFMUL_TXT_DEBUG = open("NTRU3_DOUT_COEFMUL_DEBUG.txt","w")
 
     for i in range(len(A)//findeg):
         if ring == 0:
@@ -920,17 +947,26 @@ def CRTBasedModPolMul_Unified(A,B,w,w_inv,q,ring,findeg,ntrupowersf=[],ntrupower
         if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2):
             NWC2_WP_TXT.write(hex(wk*fd2_R % q).replace("L","")[2:]+"\n")
 
+        if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3):
+            NTRU3_WP_TXT.write(hex(wk*fd3_R % mq).replace("L","")[2:]+"\n")
+
         if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2):
             NWC2_DOUT_COEFMUL_TXT_DEBUG.write("(A["+str(findeg*i)+":"+str(findeg*i+findeg-1)+"]="+str(A_ntt[findeg*i:findeg*i+findeg])+", ".ljust(5)+ \
                                                "B["+str(findeg*i)+":"+str(findeg*i+findeg-1)+"]="+str(B_ntt[findeg*i:findeg*i+findeg])+", ".ljust(5)+ \
                                                "W:"+str(wk*fd2_R % q)+") --> ".ljust(5) + \
                                                "C["+str(findeg*i)+":"+str(findeg*i+findeg-1)+"]="+str(C_ntt[findeg*i:findeg*i+findeg])+"\n")
 
+        if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3):
+            NTRU3_DOUT_COEFMUL_TXT_DEBUG.write("(A["+str(findeg*i)+":"+str(findeg*i+findeg-1)+"]="+str(A_ntt[findeg*i:findeg*i+findeg])+", ".ljust(5)+ \
+                                                "B["+str(findeg*i)+":"+str(findeg*i+findeg-1)+"]="+str(B_ntt[findeg*i:findeg*i+findeg])+", ".ljust(5)+ \
+                                                "W:"+str(wk*fd3_R % q)+") --> ".ljust(5) + \
+                                                "C["+str(findeg*i)+":"+str(findeg*i+findeg-1)+"]="+str(C_ntt[findeg*i:findeg*i+findeg])+"\n")
+
     # --------------------------------------------- INTT
     if DEBUG_TEST_NWC1 and (ring == 0) and (findeg == 1):
         for cn in C_ntt:
             NWC1_DOUT_MINTT_TXT.write(hex(cn).replace("L","")[2:]+"\n")
-    
+
     if DEBUG_TEST_NWC2 and (ring == 0) and (findeg == 2):
         for cn in C_ntt:
             NWC2_DOUT_MINTT_TXT.write(hex(cn).replace("L","")[2:]+"\n")
@@ -951,6 +987,10 @@ def CRTBasedModPolMul_Unified(A,B,w,w_inv,q,ring,findeg,ntrupowersf=[],ntrupower
         """
         return C,ABR,ATW,CBR,CTW
     else:
+        if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3):
+            for cn in C:
+                NTRU3_POSTDOUT_TXT.write(hex(cn).replace("L","")[2:]+"\n")
+
         if DEBUG_DISP_NTRU3 and (ring == 1) and (findeg == 3): print("---- Post-processing:")
         """
         NTRU requires final reconstruction step
@@ -958,7 +998,17 @@ def CRTBasedModPolMul_Unified(A,B,w,w_inv,q,ring,findeg,ntrupowersf=[],ntrupower
         wk = modinv((2*pow(w,(len(C)//6),q)-1)%q,q)
         # wk = modinv((2*pow(w,(len(C)//6)//(findeg//3),q)-1)%q,q)
 
+        if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3):
+            NTRU3_POSTDOUT_TXT_DEBUG = open("NTRU3_POSTDOUT_DEBUG.txt","w")
+
         for i in range(len(C)//2):
+            if DEBUG_TEST_NTRU3 and (ring == 1) and (findeg == 3):
+                NTRU3_POSTDOUT_TXT_DEBUG.write("(C["+str(i+len(C)//2)+"]="+str(C[i+len(C)//2])+", ".ljust(5)+ \
+                                                "C["+str(i)+"]="+str(C[i])+", ".ljust(5)+ \
+                                                "W:"+str(wk*fd3_R % q)+") --> ".ljust(5) + \
+                                                "A["+str(i+len(C)//2)+"]="+str(2*(((C[i]-C[i+len(C)//2])*wk)%q))+", ".ljust(5)+ \
+                                                "A["+str(i)+"]="+str((C[i]+C[i+len(C)//2]-(((C[i]-C[i+len(C)//2])*wk)%q))%q)+"\n")
+
             t = ((C[i]-C[i+len(C)//2])*wk)%q   # t = f[i+N//2]
             C[i          ] = (C[i]+C[i+len(C)//2]-t)%q
             C[i+len(C)//2] = (2*t)%q
@@ -1273,7 +1323,6 @@ if DEBUG_TEST_NWC2:
         NWC2_DIN0_TXT.write(hex(mi0).replace("L","")[2:]+"\n")
         NWC2_DIN1_TXT.write(hex(mi1).replace("L","")[2:]+"\n")
         NWC2_DOUT_TXT.write(hex(mo0).replace("L","")[2:]+"\n")
-        print("asd")
     # Twiddle factor
     v = int(math.log(n//2, 2))
     m = n//PE
@@ -1299,6 +1348,44 @@ if DEBUG_TEST_NWC2:
     NWC2_DIN1_TXT.close()
     NWC2_DOUT_TXT.close()
 if DEBUG_TEST_NTRU3:
-    pass
+    # Parameters
+    NTRU3_PRM_TXT.write(hex(m          ).replace("L","")[2:]+"\n")
+    NTRU3_PRM_TXT.write(hex(mq         ).replace("L","")[2:]+"\n")
+    NTRU3_PRM_TXT.write(hex(mq_bit     ).replace("L","")[2:]+"\n")
+    NTRU3_PRM_TXT.write(hex(PE_NUMBER  ).replace("L","")[2:]+"\n")
+    if WLMONT:
+        NTRU3_PRM_TXT.write(hex(pow(mw,m//6,q)*fd3_R % mq).replace("L","")[2:]+"\n") # W_pre
+        NTRU3_PRM_TXT.write(hex(modinv((2*pow(mw,(m//6),mq)-1)%mq,mq)*fd3_R % mq).replace("L","")[2:]+"\n") # W_post
+        NTRU3_PRM_TXT.write(hex(modinv(n,q)*fd3_R % mq).replace("L","")[2:]+"\n")
+    else:
+        NTRU3_PRM_TXT.write(hex(pow(mw,m//6,q)).replace("L","")[2:]+"\n") # W_pre
+        NTRU3_PRM_TXT.write(hex(modinv((2*pow(mw,(m//6),mq)-1)%mq,mq)).replace("L","")[2:]+"\n") # W_post
+        NTRU3_PRM_TXT.write(hex(modinv(n,mq)).replace("L","")[2:]+"\n")
+    # Input/Output
+    for mi0,mi1,mo0 in zip(A_ntru,B_ntru,R2):
+        NTRU3_DIN0_TXT.write(hex(mi0).replace("L","")[2:]+"\n")
+        NTRU3_DIN1_TXT.write(hex(mi1).replace("L","")[2:]+"\n")
+        NTRU3_DOUT_TXT.write(hex(mo0).replace("L","")[2:]+"\n")
+    # Twiddle factor
+    v = int(math.log(n//2, 2))
+    m = n//PE
+    for j in range(v):
+        for k in range(0,m,max(1,m>>j)):
+            for i in range(PE//2):
+                if WLMONT:
+                    NTRU3_W_TXT.write(hex(pow(mw,R2TWF[i][j][3*k],q)*fd3_R % mq).replace("L","")[2:]+"\t  ")
+                else:
+                    NTRU3_W_TXT.write(hex(pow(mw,R2TWF[i][j][3*k],mq)).replace("L","")[2:]+"\t  ")
+            NTRU3_W_TXT.write("\n")
+    v = int(math.log(n//2, 2))
+    m = n//PE
+    for j in range(v):
+        for k in range(0,m,max(1,m>>(v-j-1))):
+            for i in range(PE//2):
+                if WLMONT:
+                    NTRU3_WINV_TXT.write(hex(pow(mw_inv,R2TWI[i][j][3*k],mq)*fd3_R % mq).replace("L","")[2:]+"\t  ")
+                else:
+                    NTRU3_WINV_TXT.write(hex(pow(mw_inv,R2TWI[i][j][3*k],mq)).replace("L","")[2:]+"\t  ")
+            NTRU3_WINV_TXT.write("\n")
 
 #
